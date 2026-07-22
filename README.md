@@ -54,3 +54,5 @@ npm run build
 `main` 브랜치에 푸시하면 `.github/workflows/deploy.yml`이 정적 파일을 GitHub Pages에 배포합니다. 저장소의 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 한 번 지정해야 합니다.
 
 기록과 진행 상태는 서버가 아니라 사용 중인 브라우저의 `localStorage`에만 저장됩니다.
+
+사용된 웹폰트의 출처와 라이선스는 [`assets/FONT-LICENSES.md`](./assets/FONT-LICENSES.md)에서 확인할 수 있습니다.

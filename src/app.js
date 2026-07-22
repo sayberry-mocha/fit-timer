@@ -168,6 +168,9 @@ const elements = {
   programName: document.querySelector("#program-name"),
   changeProgramButton: document.querySelector("#change-program-button"),
   overallProgressText: document.querySelector("#overall-progress-text"),
+  completedExerciseList: document.querySelector("#completed-exercise-list"),
+  currentExerciseList: document.querySelector("#current-exercise-list"),
+  nextExerciseList: document.querySelector("#next-exercise-list"),
   overallProgress: document.querySelector("#overall-progress"),
   overallProgressBar: document.querySelector("#overall-progress-bar"),
   exerciseView: document.querySelector("#exercise-view"),
@@ -316,7 +319,7 @@ function renderProgramCards() {
       meta.textContent = `운동 ${program.exercises.length}종 · 총 ${totalSets}세트`;
       const exercises = document.createElement("span");
       exercises.className = "program-exercises";
-      exercises.textContent = program.exercises.map((exercise) => exercise.name).join(" · ");
+      exercises.textContent = program.exercises.map((exercise) => exercise.name).join(" → ");
       copy.append(title, meta, exercises);
 
       const arrow = document.createElement("span");
@@ -519,6 +522,7 @@ function renderWorkout() {
   elements.overallProgress.setAttribute("aria-valuemax", String(totalSets));
   elements.overallProgress.setAttribute("aria-valuenow", String(completed));
   elements.overallProgressBar.style.width = `${(completed / totalSets) * 100}%`;
+  renderExerciseProgressSummary(program, exercise);
 
   elements.exerciseView.hidden = !isExercisePhase;
   elements.restView.hidden = isExercisePhase;
@@ -562,6 +566,26 @@ function renderWorkout() {
   }
 
   nudgeCurrentHeadingForShortViewport();
+}
+
+function renderExerciseProgressSummary(program, exercise) {
+  let targetExerciseIndex = activeSession.exerciseIndex;
+  if (activeSession.phase !== "exercise" && activeSession.setIndex + 1 >= exercise.sets) {
+    targetExerciseIndex += 1;
+  }
+
+  const completedExercises = program.exercises.slice(0, targetExerciseIndex);
+  const currentExercise = program.exercises[targetExerciseIndex] || null;
+  const nextExercises = currentExercise ? program.exercises.slice(targetExerciseIndex + 1) : [];
+
+  elements.completedExerciseList.textContent = formatExerciseProgressNames(completedExercises);
+  elements.currentExerciseList.textContent = formatExerciseProgressNames(currentExercise ? [currentExercise] : []);
+  elements.nextExerciseList.textContent = formatExerciseProgressNames(nextExercises);
+}
+
+function formatExerciseProgressNames(exercises) {
+  const names = exercises.map((exercise) => exercise.name);
+  return `(${names.length > 0 ? names.join(" → ") : "-"})`;
 }
 
 function renderSetDots(setCount) {

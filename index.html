@@ -96,7 +96,20 @@
 
           <section class="progress-block" aria-label="전체 운동 진행률">
             <div class="progress-copy">
-              <span>전체 진행</span>
+              <div class="exercise-progress-line" id="exercise-progress-line" aria-label="운동별 진행 상태">
+                <span class="exercise-progress-group is-completed">
+                  <span class="exercise-progress-label">완료</span>
+                  <span id="completed-exercise-list">(-)</span>
+                </span>
+                <span class="exercise-progress-group is-current">
+                  <span class="exercise-progress-label">지금</span>
+                  <span id="current-exercise-list">(-)</span>
+                </span>
+                <span class="exercise-progress-group is-next">
+                  <span class="exercise-progress-label">다음</span>
+                  <span id="next-exercise-list">(-)</span>
+                </span>
+              </div>
               <strong id="overall-progress-text">0 / 0 세트</strong>
             </div>
             <div
