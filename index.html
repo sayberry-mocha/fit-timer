@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="운동 세트를 기록하고 1분 휴식 시간을 알려주는 간단한 운동 타이머"
+    />
+    <meta id="theme-color" name="theme-color" content="#f4f1ea" />
+    <title>핏타이머</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/fit-timer-icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <button class="brand" id="home-button" type="button" aria-label="프로그램 선택 화면으로 이동">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="./assets/fit-timer-icon.svg" width="38" height="38" alt="" />
+          </span>
+          <span class="brand-name">핏타이머</span>
+        </button>
+
+        <button class="icon-button" id="sound-toggle" type="button" aria-pressed="true">
+          <svg class="sound-on" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 9v6h4l5 4V5L9 9H5Z"></path>
+            <path d="M17 8.5a5 5 0 0 1 0 7M19.5 6a8.5 8.5 0 0 1 0 12"></path>
+          </svg>
+          <svg class="sound-off" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 9v6h4l5 4V5L9 9H5Z"></path>
+            <path d="m18 9 4 4m0-4-4 4"></path>
+          </svg>
+          <span class="sr-only" id="sound-label">효과음 켜짐</span>
+        </button>
+      </header>
+
+      <main id="app">
+        <section class="screen loading-screen" id="loading-screen" aria-live="polite">
+          <div class="loader" aria-hidden="true"></div>
+          <p>운동 프로그램을 불러오는 중…</p>
+        </section>
+
+        <section class="screen select-screen" id="select-screen" hidden>
+          <div class="intro">
+            <p class="eyebrow">오늘의 루틴</p>
+            <h1>어떤 운동을<br />시작할까요?</h1>
+            <p class="intro-copy">프로그램을 고르면 첫 세트부터 바로 시작합니다.</p>
+          </div>
+
+          <div class="program-list" id="program-list" aria-label="운동 프로그램"></div>
+
+          <section class="history" id="history-section" aria-labelledby="history-title" hidden>
+            <div class="section-heading">
+              <h2 id="history-title">최근 기록</h2>
+              <button class="text-button" id="clear-history-button" type="button">기록 지우기</button>
+            </div>
+            <ol class="history-list" id="history-list"></ol>
+            <p class="storage-note">기록은 이 브라우저에만 저장됩니다.</p>
+          </section>
+        </section>
+
+        <section class="screen workout-screen" id="workout-screen" hidden>
+          <div class="session-toolbar">
+            <span class="program-pill" id="program-name"></span>
+            <button class="text-button" id="change-program-button" type="button">프로그램 바꾸기</button>
+          </div>
+
+          <section class="progress-block" aria-label="전체 운동 진행률">
+            <div class="progress-copy">
+              <span>전체 진행</span>
+              <strong id="overall-progress-text">0 / 0 세트</strong>
+            </div>
+            <div
+              class="progress-track"
+              id="overall-progress"
+              role="progressbar"
+              aria-label="완료한 세트"
+              aria-valuemin="0"
+              aria-valuemax="0"
+              aria-valuenow="0"
+            >
+              <span id="overall-progress-bar"></span>
+            </div>
+          </section>
+
+          <section class="stage-card">
+            <div class="exercise-view" id="exercise-view">
+              <p class="phase-label">지금 할 운동</p>
+              <h1 class="exercise-name" id="exercise-name"></h1>
+              <p class="set-label" id="set-label"></p>
+              <div class="set-dots" id="set-dots" aria-hidden="true"></div>
+              <p class="encouragement" id="encouragement">준비가 되면 세트를 시작하세요.</p>
+            </div>
+
+            <div class="rest-view" id="rest-view" hidden>
+              <div class="rest-state-icon" aria-hidden="true">
+                <span></span>
+              </div>
+              <p class="phase-label" id="rest-phase-label">휴식 중</p>
+              <h1 class="rest-title" id="rest-title">천천히 숨을 고르세요</h1>
+              <time class="timer" id="timer-display" datetime="PT1M">01:00</time>
+              <p class="rest-context" id="rest-context"></p>
+            </div>
+
+            <div class="next-up" id="next-up">
+              <span>다음</span>
+              <strong id="next-up-text"></strong>
+            </div>
+          </section>
+
+          <div class="action-area">
+            <p class="action-hint" id="action-hint"></p>
+            <button class="primary-button" id="primary-action" type="button"></button>
+          </div>
+        </section>
+
+        <section class="screen complete-screen" id="complete-screen" hidden>
+          <div class="complete-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="m6.5 12.5 3.5 3.5 7.5-8"></path>
+            </svg>
+          </div>
+          <p class="eyebrow">운동 완료</p>
+          <h1>오늘의 루틴을<br />마쳤어요.</h1>
+          <p class="complete-copy">수고했어요. 가볍게 몸을 풀며 마무리하세요.</p>
+
+          <dl class="summary-card">
+            <div>
+              <dt>프로그램</dt>
+              <dd id="summary-program"></dd>
+            </div>
+            <div>
+              <dt>완료 세트</dt>
+              <dd id="summary-sets"></dd>
+            </div>
+            <div>
+              <dt>운동 시간</dt>
+              <dd id="summary-duration"></dd>
+            </div>
+          </dl>
+
+          <div class="complete-actions">
+            <button class="primary-button" id="repeat-program-button" type="button">같은 프로그램 다시 하기</button>
+            <button class="secondary-button" id="choose-program-button" type="button">다른 프로그램 고르기</button>
+          </div>
+        </section>
+
+        <section class="screen error-screen" id="error-screen" hidden>
+          <div class="error-mark" aria-hidden="true">!</div>
+          <h1>프로그램을 불러오지 못했어요.</h1>
+          <p>잠시 후 다시 시도해 주세요.</p>
+          <button class="primary-button" id="retry-button" type="button">다시 불러오기</button>
+        </section>
+      </main>
+    </div>
+
+    <p class="sr-only" id="live-region" aria-live="polite" aria-atomic="true"></p>
+    <script defer src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">핏타이머 아이콘</title>
+  <desc id="description">알파벳 F와 작은 스톱워치를 결합한 아이콘</desc>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#19231f" />
+
+  <path
+    d="M17 47.5V17h19M17 30.5h13"
+    fill="none"
+    stroke="#fffdf9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="6.5"
+  />
+
+  <circle cx="43" cy="41" r="13.5" fill="#ff7958" stroke="#19231f" stroke-width="3" />
+  <path
+    d="M43 33.5V41l5 3"
+    fill="none"
+    stroke="#fffdf9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="3.5"
+  />
+  <circle cx="43" cy="41" r="1.8" fill="#fffdf9" />
+</svg>
