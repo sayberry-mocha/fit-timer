@@ -14,8 +14,8 @@
   --shadow: 0 24px 70px rgba(52, 55, 47, 0.12);
   --radius-large: 32px;
   --radius-medium: 22px;
-  --safe-top: max(0px, env(safe-area-inset-top));
-  --safe-bottom: max(20px, env(safe-area-inset-bottom));
+  --safe-top: 0px;
+  --safe-bottom: 20px;
   font-family:
     Pretendard,
     -apple-system,
@@ -23,6 +23,13 @@
     "Segoe UI",
     sans-serif;
   font-synthesis: none;
+}
+
+@supports (padding-top: max(0px)) {
+  :root {
+    --safe-top: max(0px, env(safe-area-inset-top, 0px));
+    --safe-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 * {
@@ -49,7 +56,8 @@ body.is-resting {
   --page: #f1eee5;
 }
 
-body.is-rest-complete {
+body.is-rest-complete,
+body.is-alarm-test-complete {
   --page: #dcecdf;
 }
 
@@ -92,16 +100,20 @@ button:focus-visible {
   background: rgba(157, 192, 166, 0.32);
 }
 
-body.is-rest-complete .ambient-one {
+body.is-rest-complete .ambient-one,
+body.is-alarm-test-complete .ambient-one {
   background: rgba(255, 255, 255, 0.55);
 }
 
-body.is-rest-complete .ambient-two {
+body.is-rest-complete .ambient-two,
+body.is-alarm-test-complete .ambient-two {
   opacity: 0.9;
   background: rgba(113, 173, 133, 0.35);
 }
 
 .app-shell {
+  width: 100%;
+  max-width: 760px;
   width: min(100%, 760px);
   min-height: 100vh;
   min-height: 100svh;
@@ -113,6 +125,7 @@ body.is-rest-complete .ambient-two {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 84px;
   height: calc(84px + var(--safe-top));
   padding-top: var(--safe-top);
 }
@@ -186,10 +199,15 @@ body.is-rest-complete .ambient-two {
 }
 
 .screen {
+  padding: 20px 0 60px;
   padding: 20px 0 calc(40px + var(--safe-bottom));
 }
 
 .loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   display: grid;
   min-height: 56vh;
   place-content: center;
@@ -231,6 +249,7 @@ body.is-rest-complete .ambient-two {
 .complete-screen h1,
 .error-screen h1 {
   margin: 0;
+  font-size: 40px;
   font-size: clamp(40px, 11vw, 62px);
   font-weight: 900;
   letter-spacing: -0.065em;
@@ -247,13 +266,27 @@ body.is-rest-complete .ambient-two {
 }
 
 .program-list {
+  display: flex;
+  flex-direction: column;
   display: grid;
   gap: 12px;
+}
+
+.program-card + .program-card {
+  margin-top: 12px;
+}
+
+@supports (display: grid) {
+  .program-card + .program-card {
+    margin-top: 0;
+  }
 }
 
 .program-card {
   --program-color: var(--primary);
   position: relative;
+  display: flex;
+  width: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
   min-height: 132px;
@@ -266,6 +299,7 @@ body.is-rest-complete .ambient-two {
   background: var(--surface);
   box-shadow: 0 9px 30px rgba(57, 58, 51, 0.06);
   cursor: pointer;
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   -webkit-tap-highlight-color: transparent;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
@@ -292,6 +326,7 @@ body.is-rest-complete .ambient-two {
 }
 
 .program-card-copy {
+  flex: 1;
   min-width: 0;
 }
 
@@ -324,6 +359,9 @@ body.is-rest-complete .ambient-two {
 }
 
 .program-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   display: grid;
   align-self: center;
   width: 42px;
@@ -332,8 +370,125 @@ body.is-rest-complete .ambient-two {
   place-items: center;
   border-radius: 50%;
   color: var(--ink);
+  background: var(--primary-soft);
   background: color-mix(in srgb, var(--program-color) 20%, white);
   font-size: 21px;
+}
+
+.alarm-test {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid rgba(25, 35, 31, 0.09);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: border-color 300ms ease, background-color 600ms ease;
+}
+
+.alarm-test-info {
+  display: flex;
+  align-items: center;
+}
+
+.alarm-test-icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  color: var(--primary-deep);
+  background: var(--primary-soft);
+  transform-origin: 50% 12%;
+}
+
+.alarm-test-icon svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.alarm-test-copy {
+  min-width: 0;
+  margin-left: 14px;
+}
+
+.alarm-test-copy h2 {
+  margin: 0 0 5px;
+  font-size: 17px;
+  letter-spacing: -0.035em;
+}
+
+.alarm-test-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.alarm-test-button {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 15px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 14px;
+  color: #fff;
+  background: var(--ink);
+  font-size: 14px;
+  font-weight: 820;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.alarm-test-button:active {
+  transform: scale(0.985);
+}
+
+.alarm-test-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+  transform: none;
+}
+
+.alarm-test.is-counting {
+  border-color: rgba(255, 107, 74, 0.28);
+  background: rgba(255, 249, 245, 0.76);
+}
+
+.alarm-test.is-counting .alarm-test-icon {
+  animation: alarm-bell 0.8s ease-in-out infinite;
+}
+
+.alarm-test.is-complete {
+  border-color: rgba(29, 108, 83, 0.25);
+  background: rgba(235, 247, 239, 0.82);
+}
+
+.alarm-test.is-complete .alarm-test-icon {
+  color: var(--sage);
+  background: var(--sage-soft);
+}
+
+.alarm-test.is-complete .alarm-test-button {
+  background: var(--sage);
+}
+
+@keyframes alarm-bell {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+
+  50% {
+    transform: rotate(5deg);
+  }
 }
 
 .history {
@@ -410,6 +565,7 @@ body.is-rest-complete .ambient-two {
 
 .workout-screen {
   padding-top: 12px;
+  padding-bottom: 140px;
   padding-bottom: calc(120px + var(--safe-bottom));
 }
 
@@ -467,12 +623,14 @@ body.is-rest-complete .progress-track span {
 .stage-card {
   position: relative;
   min-height: 430px;
+  padding: 40px 30px 28px;
   padding: clamp(30px, 8vw, 54px) clamp(24px, 7vw, 48px) 28px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: var(--radius-large);
   background: var(--surface);
   box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 
@@ -485,6 +643,7 @@ body.is-rest-complete .progress-track span {
 .exercise-name {
   margin: 34px 0 9px;
   overflow-wrap: anywhere;
+  font-size: 72px;
   font-size: clamp(64px, 19vw, 108px);
   font-weight: 950;
   letter-spacing: -0.075em;
@@ -501,8 +660,11 @@ body.is-rest-complete .progress-track span {
 .set-dots {
   display: flex;
   justify-content: center;
-  gap: 8px;
   min-height: 10px;
+}
+
+.set-dot + .set-dot {
+  margin-left: 8px;
 }
 
 .set-dot {
@@ -532,6 +694,9 @@ body.is-rest-complete .progress-track span {
 }
 
 .rest-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   display: grid;
   width: 62px;
   height: 62px;
@@ -570,6 +735,7 @@ body.is-rest-complete .rest-view .phase-label {
 
 .rest-title {
   margin: 0;
+  font-size: 26px;
   font-size: clamp(23px, 6vw, 34px);
   font-weight: 880;
   letter-spacing: -0.05em;
@@ -579,6 +745,7 @@ body.is-rest-complete .rest-view .phase-label {
   display: block;
   margin: 23px 0 13px;
   font-variant-numeric: tabular-nums;
+  font-size: 80px;
   font-size: clamp(72px, 21vw, 116px);
   font-weight: 900;
   letter-spacing: -0.075em;
@@ -620,7 +787,10 @@ body.is-rest-complete .rest-view .phase-label {
   z-index: 20;
   bottom: 0;
   left: 50%;
+  width: calc(100% - 40px);
+  max-width: 692px;
   width: min(calc(100% - 40px), 692px);
+  padding: 18px 0 20px;
   padding: 18px 0 var(--safe-bottom);
   isolation: isolate;
   transform: translateX(-50%);
@@ -699,6 +869,9 @@ body.is-rest-complete .primary-button {
 }
 
 .complete-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   display: grid;
   width: 76px;
   height: 76px;
@@ -729,6 +902,7 @@ body.is-rest-complete .primary-button {
 }
 
 .summary-card {
+  display: flex;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   margin: 34px 0 24px;
@@ -737,6 +911,10 @@ body.is-rest-complete .primary-button {
   border-radius: var(--radius-medium);
   background: var(--surface);
   box-shadow: 0 12px 38px rgba(57, 58, 51, 0.07);
+}
+
+.summary-card > div {
+  flex: 1;
 }
 
 .summary-card div + div {
@@ -760,7 +938,21 @@ body.is-rest-complete .primary-button {
   gap: 10px;
 }
 
+.complete-actions > * + * {
+  margin-top: 10px;
+}
+
+@supports (display: grid) {
+  .complete-actions > * + * {
+    margin-top: 0;
+  }
+}
+
 .error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   display: grid;
   min-height: 62vh;
   place-content: center;
@@ -769,6 +961,7 @@ body.is-rest-complete .primary-button {
 
 .error-screen h1 {
   max-width: 500px;
+  font-size: 34px;
   font-size: clamp(30px, 8vw, 46px);
 }
 
@@ -778,6 +971,9 @@ body.is-rest-complete .primary-button {
 }
 
 .error-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   display: grid;
   width: 56px;
   height: 56px;
@@ -805,6 +1001,25 @@ body.is-rest-complete .primary-button {
   outline: none;
 }
 
+@media (min-width: 560px) {
+  .alarm-test {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .alarm-test-info {
+    flex: 1;
+  }
+
+  .alarm-test-button {
+    width: auto;
+    min-width: 118px;
+    margin-top: 0;
+    margin-left: 18px;
+  }
+}
+
 @media (min-width: 700px) {
   .app-shell {
     padding-right: 34px;
@@ -812,6 +1027,8 @@ body.is-rest-complete .primary-button {
   }
 
   .action-area {
+    width: calc(100% - 68px);
+    max-width: 692px;
     width: min(calc(100% - 68px), 692px);
   }
 
@@ -847,6 +1064,7 @@ body.is-rest-complete .primary-button {
   }
 
   .app-header {
+    height: 72px;
     height: calc(72px + var(--safe-top));
   }
 
@@ -880,6 +1098,7 @@ body.is-rest-complete .primary-button {
 
 @media (max-height: 700px) {
   .app-header {
+    height: 60px;
     height: calc(60px + var(--safe-top));
   }
 
@@ -910,6 +1129,7 @@ body.is-rest-complete .primary-button {
 
   .exercise-name {
     margin-top: 24px;
+    font-size: 54px;
     font-size: clamp(54px, 14vh, 76px);
   }
 
@@ -929,6 +1149,7 @@ body.is-rest-complete .primary-button {
 
   .timer {
     margin-top: 15px;
+    font-size: 60px;
     font-size: clamp(60px, 18vh, 86px);
   }
 

@@ -1,0 +1,13 @@
+{
+  "name": "fit-timer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "babel src/app.js --out-file app.js --source-type script --no-comments"
+  },
+  "devDependencies": {
+    "@babel/cli": "8.0.4",
+    "@babel/core": "8.0.1",
+    "@babel/preset-env": "8.0.2"
+  }
+}

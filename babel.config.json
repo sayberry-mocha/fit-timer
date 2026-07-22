@@ -1,0 +1,13 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "ios": "9.3"
+        },
+        "modules": false
+      }
+    ]
+  ]
+}

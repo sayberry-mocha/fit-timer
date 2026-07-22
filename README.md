@@ -4,10 +4,12 @@
 
 ## 기능
 
-- `app.js`에서 관리하는 대근육·중근육·소근육 프로그램
+- `src/app.js`에서 관리하는 대근육·중근육·소근육 프로그램
+- iOS 9.3 이상의 구형 Safari를 위한 호환 JavaScript 제공
 - 현재 운동/세트와 전체 진행률 표시
 - 백그라운드에서도 종료 시각을 기준으로 정확히 복구되는 1분 타이머
 - 휴식 완료 시 차분한 배경색 전환과 작은 효과음
+- 실제 휴식 종료 효과음과 배경 변화를 재현하는 3초 알람 테스트
 - 진행 중인 운동 자동 저장 및 새로고침 복원
 - 완료한 운동 기록을 브라우저에 저장
 
@@ -23,7 +25,7 @@ python3 -m http.server 4173
 
 ## 프로그램 수정
 
-운동 순서, 세트 수, 휴식 시간은 [`app.js`](./app.js) 상단의 `PROGRAM_CONFIG`에서 수정합니다.
+운동 순서, 세트 수, 휴식 시간은 [`src/app.js`](./src/app.js) 상단의 `PROGRAM_CONFIG`에서 수정합니다.
 
 ```js
 const PROGRAM_CONFIG = {
@@ -38,6 +40,13 @@ const PROGRAM_CONFIG = {
     }
   ]
 };
+```
+
+수정한 원본을 구형 iOS 호환용 `app.js`로 변환하려면 다음 명령을 실행합니다.
+
+```bash
+npm install
+npm run build
 ```
 
 ## GitHub Pages 배포

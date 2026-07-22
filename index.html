@@ -41,7 +41,7 @@
       <main id="app">
         <section class="screen loading-screen" id="loading-screen" aria-live="polite">
           <div class="loader" aria-hidden="true"></div>
-          <p>운동 프로그램을 불러오는 중…</p>
+          <p id="loading-message">운동 프로그램을 불러오는 중…</p>
         </section>
 
         <section class="screen select-screen" id="select-screen" hidden>
@@ -52,6 +52,31 @@
           </div>
 
           <div class="program-list" id="program-list" aria-label="운동 프로그램"></div>
+
+          <section class="alarm-test" id="alarm-test" aria-labelledby="alarm-test-title">
+            <div class="alarm-test-info">
+              <span class="alarm-test-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 18h8M10 21h4"></path>
+                  <path d="M6.8 16.5h10.4c-1.1-1.3-1.7-2.9-1.7-4.6V10a3.5 3.5 0 0 0-7 0v1.9c0 1.7-.6 3.3-1.7 4.6Z"></path>
+                </svg>
+              </span>
+              <div class="alarm-test-copy">
+                <h2 id="alarm-test-title">알람 테스트</h2>
+                <p id="alarm-test-status" role="status" aria-live="polite">
+                  3초 후 실제 휴식 종료 알림을 재현합니다. 기기 음량 버튼으로 조절하세요.
+                </p>
+              </div>
+            </div>
+            <button
+              class="alarm-test-button"
+              id="alarm-test-button"
+              type="button"
+              aria-describedby="alarm-test-status"
+            >
+              3초 테스트
+            </button>
+          </section>
 
           <section class="history" id="history-section" aria-labelledby="history-title" hidden>
             <div class="section-heading">
@@ -159,6 +184,15 @@
     </div>
 
     <p class="sr-only" id="live-region" aria-live="polite" aria-atomic="true"></p>
+    <script>
+      window.setTimeout(function () {
+        var loadingScreen = document.getElementById("loading-screen");
+        var loadingMessage = document.getElementById("loading-message");
+        if (loadingScreen && !loadingScreen.hidden && loadingMessage) {
+          loadingMessage.textContent = "브라우저 호환성 문제로 앱을 시작하지 못했습니다.";
+        }
+      }, 4000);
+    </script>
     <script defer src="./app.js"></script>
   </body>
 </html>
