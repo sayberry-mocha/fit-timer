@@ -5,11 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="운동 세트를 기록하고 1분 휴식 시간을 알려주는 간단한 운동 타이머"
+      content="운동 세트를 기록하고 휴식 시간을 알려주는 간단한 운동 타이머"
     />
     <meta id="theme-color" name="theme-color" content="#f4f1ea" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="핏타이머" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
     <title>핏타이머</title>
+    <link rel="manifest" href="./site.webmanifest" />
+    <link rel="icon" href="./favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" type="image/svg+xml" href="./assets/fit-timer-icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="76x76"
+      href="./assets/icons/apple-touch-icon-76x76.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="./assets/icons/apple-touch-icon-120x120.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="152x152"
+      href="./assets/icons/apple-touch-icon-152x152.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="167x167"
+      href="./assets/icons/apple-touch-icon-167x167.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="./assets/icons/apple-touch-icon-180x180.png"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -64,7 +99,7 @@
               <div class="alarm-test-copy">
                 <h2 id="alarm-test-title">알람 테스트</h2>
                 <p id="alarm-test-status" role="status" aria-live="polite">
-                  3초 후 실제 휴식 종료 알림을 재현합니다. 기기 음량 버튼으로 조절하세요.
+                  1초 후 실제 휴식 종료 알림을 재현합니다. 기기 음량 버튼으로 조절하세요.
                 </p>
               </div>
             </div>
@@ -74,7 +109,7 @@
               type="button"
               aria-describedby="alarm-test-status"
             >
-              3초 테스트
+              1초 테스트
             </button>
           </section>
 
@@ -125,7 +160,13 @@
             </div>
           </section>
 
-          <section class="stage-card">
+          <section
+            class="stage-card"
+            id="stage-card"
+            role="button"
+            tabindex="0"
+            aria-describedby="panel-action-message"
+          >
             <div class="exercise-view" id="exercise-view">
               <p class="phase-label">지금 할 운동</p>
               <h1 class="exercise-name" id="exercise-name"></h1>
@@ -148,12 +189,11 @@
               <span>다음</span>
               <strong id="next-up-text"></strong>
             </div>
-          </section>
 
-          <div class="action-area">
-            <p class="action-hint" id="action-hint"></p>
-            <button class="primary-button" id="primary-action" type="button"></button>
-          </div>
+            <p class="panel-action-message" id="panel-action-message">
+              패널을 선택하여 휴식 시작
+            </p>
+          </section>
         </section>
 
         <section class="screen complete-screen" id="complete-screen" hidden>

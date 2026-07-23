@@ -143,13 +143,25 @@ var PROGRAM_CONFIG = {
       name: "P",
       sets: 3
     }]
+  }, {
+    id: "test",
+    name: "테스트",
+    description: "짧은 휴식과 자동 전환을 확인합니다.",
+    accent: "#7184c9",
+    restSeconds: 3,
+    exercises: [{
+      name: "TEST",
+      sets: 2
+    }]
   }]
 };
 var SCREEN_IDS = ["loading-screen", "select-screen", "workout-screen", "complete-screen", "error-screen"];
 var DEFAULT_TITLE = "핏타이머";
 var HISTORY_LIMIT = 20;
-var ALARM_TEST_SECONDS = 3;
+var ALARM_TEST_SECONDS = 1;
 var ALARM_TEST_COMPLETE_HOLD_MS = 1600;
+var STAGE_ACTION_LOCK_MS = 450;
+var AUTOMATIC_TRANSITION_LOCK_MS = 800;
 var elements = {
   themeColor: document.querySelector("#theme-color"),
   homeButton: document.querySelector("#home-button"),
@@ -182,8 +194,8 @@ var elements = {
   restContext: document.querySelector("#rest-context"),
   nextUp: document.querySelector("#next-up"),
   nextUpText: document.querySelector("#next-up-text"),
-  actionHint: document.querySelector("#action-hint"),
-  primaryAction: document.querySelector("#primary-action"),
+  stageCard: document.querySelector("#stage-card"),
+  panelActionMessage: document.querySelector("#panel-action-message"),
   summaryProgram: document.querySelector("#summary-program"),
   summarySets: document.querySelector("#summary-sets"),
   summaryDuration: document.querySelector("#summary-duration"),
@@ -198,8 +210,11 @@ var lastCompletedSession = null;
 var timerInterval = null;
 var audioContext = null;
 var soundEnabled = true;
-var primaryActionUnlockTimer = null;
-var primaryActionLocked = false;
+var stageActionUnlockTimer = null;
+var stageActionLocked = false;
+var restChimeSources = [];
+var restChimeContext = null;
+var restChimeStartsAt = null;
 var alarmTestInterval = null;
 var alarmTestResetTimer = null;
 var alarmTestEndsAt = null;
@@ -215,7 +230,8 @@ function bindEvents() {
     var card = event.target.closest("[data-program-id]");
     if (card) startProgram(card.dataset.programId);
   });
-  elements.primaryAction.addEventListener("click", handlePrimaryAction);
+  elements.stageCard.addEventListener("click", handleStageAction);
+  elements.stageCard.addEventListener("keydown", handleStageKeydown);
   elements.changeProgramButton.addEventListener("click", requestProgramChange);
   elements.homeButton.addEventListener("click", requestProgramChange);
   elements.soundToggle.addEventListener("click", toggleSound);
@@ -238,6 +254,7 @@ function bindEvents() {
 function loadPrograms() {
   cancelAlarmTest();
   stopTimer();
+  stopRestChimeSources();
   showScreen("loading-screen");
   try {
     validateConfig(PROGRAM_CONFIG);
@@ -259,7 +276,7 @@ function loadPrograms() {
   }
 }
 function validateConfig(candidate) {
-  if (!candidate || !Number.isInteger(candidate.version) || !Number.isFinite(candidate.restSeconds) || candidate.restSeconds <= 0) {
+  if (!candidate || !Number.isInteger(candidate.version) || !Number.isInteger(candidate.restSeconds) || candidate.restSeconds <= 0) {
     throw new Error("올바른 휴식 시간이 없습니다.");
   }
   if (!Array.isArray(candidate.programs) || candidate.programs.length === 0) {
@@ -272,6 +289,9 @@ function validateConfig(candidate) {
     }
     ids.push(program.id);
     if (program.exercises.length === 0) throw new Error("운동이 없는 프로그램이 있습니다.");
+    if (program.restSeconds !== undefined && (!Number.isInteger(program.restSeconds) || program.restSeconds <= 0)) {
+      throw new Error("운동 프로그램의 휴식 시간이 올바르지 않습니다.");
+    }
     program.exercises.forEach(function (exercise) {
       if (!(exercise !== null && exercise !== void 0 && exercise.name) || !Number.isInteger(exercise.sets) || exercise.sets < 1) {
         throw new Error("운동 세트 정보가 올바르지 않습니다.");
@@ -294,7 +314,7 @@ function renderProgramCards() {
     title.textContent = program.name;
     var meta = document.createElement("span");
     meta.className = "program-meta";
-    meta.textContent = `운동 ${program.exercises.length}종 · 총 ${totalSets}세트`;
+    meta.textContent = `운동 ${program.exercises.length}종 · 총 ${totalSets}세트 · ` + `휴식 ${formatRestDuration(getProgramRestSeconds(program))}`;
     var exercises = document.createElement("span");
     exercises.className = "program-exercises";
     exercises.textContent = program.exercises.map(function (exercise) {
@@ -316,7 +336,8 @@ function startProgram(programId) {
   cancelAlarmTest();
   ensureAudioContext();
   stopTimer();
-  resetPrimaryActionLock();
+  stopRestChimeSources();
+  resetStageActionLock();
   activeSession = {
     version: 1,
     programVersion: config.version,
@@ -335,31 +356,41 @@ function startProgram(programId) {
   showScreen("workout-screen");
   announce(`${program.name} 프로그램을 시작합니다. ${program.exercises[0].name} 1세트입니다.`);
 }
-function handlePrimaryAction() {
-  if (!activeSession || primaryActionLocked) return;
-  lockPrimaryActionBriefly();
+function handleStageKeydown(event) {
+  var isActivationKey = event.key === "Enter" || event.key === " " || event.key === "Spacebar";
+  if (!isActivationKey || event.repeat) return;
+  event.preventDefault();
+  handleStageAction();
+}
+function handleStageAction() {
+  if (!activeSession || stageActionLocked) return;
+  if (activeSession.phase !== "exercise" && activeSession.phase !== "resting") return;
+  lockStageActionBriefly();
   ensureAudioContext();
   if (activeSession.phase === "exercise") {
     completeCurrentSet();
-  } else if (activeSession.phase === "resting" || activeSession.phase === "restComplete") {
-    advanceAfterRest();
+  } else if (activeSession.restEndsAt <= Date.now()) {
+    finishRest(true);
+  } else {
+    finishRest(false);
   }
 }
-function lockPrimaryActionBriefly() {
-  primaryActionLocked = true;
-  elements.primaryAction.setAttribute("aria-disabled", "true");
-  window.clearTimeout(primaryActionUnlockTimer);
-  primaryActionUnlockTimer = window.setTimeout(function () {
-    primaryActionLocked = false;
-    elements.primaryAction.removeAttribute("aria-disabled");
-    primaryActionUnlockTimer = null;
-  }, 450);
+function lockStageActionBriefly() {
+  var duration = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : STAGE_ACTION_LOCK_MS;
+  stageActionLocked = true;
+  elements.stageCard.setAttribute("aria-disabled", "true");
+  window.clearTimeout(stageActionUnlockTimer);
+  stageActionUnlockTimer = window.setTimeout(function () {
+    stageActionLocked = false;
+    elements.stageCard.removeAttribute("aria-disabled");
+    stageActionUnlockTimer = null;
+  }, duration);
 }
-function resetPrimaryActionLock() {
-  window.clearTimeout(primaryActionUnlockTimer);
-  primaryActionUnlockTimer = null;
-  primaryActionLocked = false;
-  elements.primaryAction.removeAttribute("aria-disabled");
+function resetStageActionLock() {
+  window.clearTimeout(stageActionUnlockTimer);
+  stageActionUnlockTimer = null;
+  stageActionLocked = false;
+  elements.stageCard.removeAttribute("aria-disabled");
 }
 function completeCurrentSet() {
   var program = getActiveProgram();
@@ -375,12 +406,14 @@ function completeCurrentSet() {
     completeProgram();
     return;
   }
+  var restSeconds = getProgramRestSeconds(program);
   activeSession.phase = "resting";
-  activeSession.restEndsAt = Date.now() + config.restSeconds * 1000;
+  activeSession.restEndsAt = Date.now() + restSeconds * 1000;
   saveSession();
+  scheduleRestChimeForActiveTimer();
   renderWorkout();
   startTimer();
-  announce(`${exercise.name} ${activeSession.setIndex + 1}세트 완료. ${config.restSeconds}초 휴식을 시작합니다.`);
+  announce(`${exercise.name} ${activeSession.setIndex + 1}세트 완료. ` + `${formatRestDuration(restSeconds)} 휴식을 시작합니다.`);
 }
 function startTimer() {
   var _activeSession2;
@@ -397,9 +430,12 @@ function updateTimer() {
   }
   var remainingMilliseconds = activeSession.restEndsAt - Date.now();
   if (remainingMilliseconds <= 0) {
-    markRestComplete();
+    finishRest(true);
     return;
   }
+  renderRestTimerDisplay(remainingMilliseconds);
+}
+function renderRestTimerDisplay(remainingMilliseconds) {
   var remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
   var clock = formatClock(remainingSeconds);
   if (elements.timerDisplay.textContent !== clock) {
@@ -408,24 +444,34 @@ function updateTimer() {
     document.title = `${clock} · 휴식 중`;
   }
 }
-function markRestComplete() {
-  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
-    _ref$playSound = _ref.playSound,
-    playSound = _ref$playSound === void 0 ? true : _ref$playSound;
+function finishRest(isAutomatic) {
   if (!activeSession || activeSession.phase !== "resting") return;
   stopTimer();
-  activeSession.phase = "restComplete";
-  activeSession.restEndsAt = null;
-  saveSession();
+  var scheduledContextIsRunning = restChimeContext && (!restChimeContext.state || restChimeContext.state === "running");
+  var scheduledChimeHasStarted = restChimeSources.length > 0 && scheduledContextIsRunning && Number.isFinite(restChimeStartsAt) && restChimeContext.currentTime + 0.05 >= restChimeStartsAt;
+  if (isAutomatic) {
+    if (scheduledChimeHasStarted) {
+      restChimeSources = [];
+      restChimeContext = null;
+      restChimeStartsAt = null;
+      ensureAudioContext();
+    } else {
+      stopRestChimeSources();
+      playChime();
+    }
+  } else {
+    stopRestChimeSources();
+  }
+  var nextExercise = advanceSessionAfterRest();
+  if (!nextExercise) return;
+  if (isAutomatic) lockStageActionBriefly(AUTOMATIC_TRANSITION_LOCK_MS);
   renderWorkout();
-  if (playSound) playChime();
-  announce("휴식이 끝났어요. 다음 세트를 시작할 준비가 되었습니다.");
+  announce(isAutomatic ? `휴식이 끝났어요. ${nextExercise.name} ${activeSession.setIndex + 1}세트를 시작합니다.` : `휴식을 일찍 끝냈습니다. ${nextExercise.name} ${activeSession.setIndex + 1}세트입니다.`);
 }
-function advanceAfterRest() {
+function advanceSessionAfterRest() {
   var program = getActiveProgram();
   var exercise = getCurrentExercise();
-  if (!program || !exercise) return;
-  stopTimer();
+  if (!program || !exercise) return null;
   if (activeSession.setIndex + 1 < exercise.sets) {
     activeSession.setIndex += 1;
   } else {
@@ -435,14 +481,14 @@ function advanceAfterRest() {
   activeSession.phase = "exercise";
   activeSession.restEndsAt = null;
   saveSession();
-  renderWorkout();
-  var nextExercise = getCurrentExercise();
-  if (nextExercise) announce(`${nextExercise.name} ${activeSession.setIndex + 1}세트입니다.`);
+  return getCurrentExercise();
 }
 function completeProgram() {
   var program = getActiveProgram();
   if (!program) return;
   stopTimer();
+  stopRestChimeSources();
+  resetStageActionLock();
   var completedAt = Date.now();
   lastCompletedSession = {
     programId: activeSession.programId,
@@ -473,7 +519,6 @@ function renderWorkout() {
   var totalSets = getTotalSets(program);
   var completed = Math.min(activeSession.completedSets, totalSets);
   var isExercisePhase = activeSession.phase === "exercise";
-  var isRestComplete = activeSession.phase === "restComplete";
   elements.programName.textContent = program.name;
   elements.overallProgressText.textContent = `${completed} / ${totalSets} 세트`;
   elements.overallProgress.setAttribute("aria-valuemax", String(totalSets));
@@ -488,30 +533,22 @@ function renderWorkout() {
   var upcoming = getUpcomingSet();
   elements.nextUp.hidden = !upcoming;
   elements.nextUpText.textContent = upcoming ? `${upcoming.exercise.name} · ${upcoming.setNumber}세트` : "";
-  document.body.classList.toggle("is-resting", activeSession.phase === "resting");
-  document.body.classList.toggle("is-rest-complete", isRestComplete);
-  elements.themeColor.content = isRestComplete ? "#dcecdf" : "#f4f1ea";
+  document.body.classList.toggle("is-resting", !isExercisePhase);
+  document.body.classList.remove("is-rest-complete");
+  elements.themeColor.content = isExercisePhase ? "#f4f1ea" : "#e5f0eb";
   if (isExercisePhase) {
     var isFinalSet = completed === totalSets - 1;
-    elements.encouragement.textContent = isFinalSet ? "마지막 세트예요. 끝까지 천천히!" : "운동을 마친 뒤 아래 버튼을 누르세요.";
-    elements.actionHint.textContent = isFinalSet ? "마지막 세트 뒤에는 휴식 타이머가 시작되지 않아요." : "버튼을 누르면 1분 휴식이 시작됩니다.";
-    elements.primaryAction.textContent = isFinalSet ? "마지막 세트 완료" : "세트 완료 · 휴식 시작";
+    elements.encouragement.textContent = isFinalSet ? "마지막 세트예요. 끝까지 천천히!" : "운동을 마친 뒤 패널을 선택하세요.";
+    elements.panelActionMessage.textContent = isFinalSet ? "패널을 선택하여 운동 완료" : "패널을 선택하여 휴식 시작";
+    elements.stageCard.setAttribute("aria-label", isFinalSet ? `${exercise.name} ${activeSession.setIndex + 1}세트 완료` : `${exercise.name} ${activeSession.setIndex + 1}세트 완료 후 휴식 시작`);
     document.title = `${exercise.name} ${activeSession.setIndex + 1}세트 · ${DEFAULT_TITLE}`;
   } else {
     elements.restContext.textContent = `${exercise.name} · ${activeSession.setIndex + 1}세트 완료`;
-    elements.restPhaseLabel.textContent = isRestComplete ? "휴식 완료" : "휴식 중";
-    elements.restTitle.textContent = isRestComplete ? "다음 세트를 시작할까요?" : "천천히 숨을 고르세요";
-    if (isRestComplete) {
-      elements.timerDisplay.textContent = "00:00";
-      elements.timerDisplay.dateTime = "PT0S";
-      elements.actionHint.textContent = "준비가 되면 다음 세트로 넘어가세요.";
-      elements.primaryAction.textContent = "휴식 종료 · 다음 세트";
-      document.title = `휴식 완료 · ${DEFAULT_TITLE}`;
-    } else {
-      elements.actionHint.textContent = "필요하면 휴식을 일찍 끝낼 수 있어요.";
-      elements.primaryAction.textContent = "휴식 건너뛰기";
-      updateTimer();
-    }
+    elements.restPhaseLabel.textContent = "휴식 중";
+    elements.restTitle.textContent = "천천히 숨을 고르세요";
+    elements.panelActionMessage.textContent = "패널을 선택하여 휴식 종료";
+    elements.stageCard.setAttribute("aria-label", upcoming ? `휴식을 일찍 끝내고 ${upcoming.exercise.name} ${upcoming.setNumber}세트 시작` : "휴식을 일찍 끝내고 다음 세트 시작");
+    renderRestTimerDisplay(Math.max(0, activeSession.restEndsAt - Date.now()));
   }
   nudgeCurrentHeadingForShortViewport();
 }
@@ -577,7 +614,8 @@ function renderHistory() {
 function showProgramSelection() {
   cancelAlarmTest();
   stopTimer();
-  resetPrimaryActionLock();
+  stopRestChimeSources();
+  resetStageActionLock();
   activeSession = null;
   removeStoredSession();
   resetPageState();
@@ -655,6 +693,9 @@ function getTotalSets(program) {
     return sum + exercise.sets;
   }, 0);
 }
+function getProgramRestSeconds(program) {
+  return program.restSeconds === undefined ? config.restSeconds : program.restSeconds;
+}
 function getProgramSignature(program) {
   return program.exercises.map(function (exercise) {
     return `${exercise.name}:${exercise.sets}`;
@@ -706,12 +747,10 @@ function restoreSession() {
   }
 }
 function reconcileRestTimer() {
-  var _activeSession3;
-  if (((_activeSession3 = activeSession) === null || _activeSession3 === void 0 ? void 0 : _activeSession3.phase) === "resting" && activeSession.restEndsAt <= Date.now()) {
-    activeSession.phase = "restComplete";
-    activeSession.restEndsAt = null;
-    saveSession();
-  }
+  var _activeSession3, _activeSession4;
+  var isExpiredRest = ((_activeSession3 = activeSession) === null || _activeSession3 === void 0 ? void 0 : _activeSession3.phase) === "resting" && activeSession.restEndsAt <= Date.now();
+  var isLegacyCompletedRest = ((_activeSession4 = activeSession) === null || _activeSession4 === void 0 ? void 0 : _activeSession4.phase) === "restComplete";
+  if (isExpiredRest || isLegacyCompletedRest) advanceSessionAfterRest();
 }
 function removeStoredSession() {
   try {
@@ -758,9 +797,16 @@ function restoreSettings() {
 }
 function toggleSound() {
   var nextSoundEnabled = !soundEnabled;
-  if (!nextSoundEnabled) cancelAlarmTest();
+  if (!nextSoundEnabled) {
+    cancelAlarmTest();
+    stopRestChimeSources();
+  }
   soundEnabled = nextSoundEnabled;
-  if (soundEnabled) ensureAudioContext();
+  if (soundEnabled) {
+    var _activeSession5;
+    ensureAudioContext();
+    if (((_activeSession5 = activeSession) === null || _activeSession5 === void 0 ? void 0 : _activeSession5.phase) === "resting") scheduleRestChimeForActiveTimer();
+  }
   saveSoundSetting();
   renderSoundSetting();
   announce(soundEnabled ? "효과음을 켰습니다." : "효과음을 껐습니다.");
@@ -790,8 +836,8 @@ function renderAlarmTestIdle() {
     elements.alarmTestButton.textContent = "재생할 수 없음";
     elements.alarmTestStatus.textContent = "이 브라우저에서는 알람 소리 재생을 지원하지 않습니다.";
   } else if (soundEnabled) {
-    elements.alarmTestButton.textContent = "3초 테스트";
-    elements.alarmTestStatus.textContent = "3초 후 실제 휴식 종료 알림을 재현합니다. 기기 음량 버튼으로 조절하세요.";
+    elements.alarmTestButton.textContent = "1초 테스트";
+    elements.alarmTestStatus.textContent = "1초 후 실제 휴식 종료 알림을 재현합니다. 기기 음량 버튼으로 조절하세요.";
   } else {
     elements.alarmTestButton.textContent = "소리 켜고 테스트";
     elements.alarmTestStatus.textContent = "테스트를 시작하면 효과음도 함께 켜집니다. 기기 음량 버튼으로 조절하세요.";
@@ -867,7 +913,7 @@ function cancelAlarmTest() {
   alarmTestSources = [];
   if (wasActive) {
     document.body.classList.remove("is-alarm-test-complete");
-    elements.themeColor.content = document.body.classList.contains("is-rest-complete") ? "#dcecdf" : "#f4f1ea";
+    elements.themeColor.content = document.body.classList.contains("is-resting") ? "#e5f0eb" : "#f4f1ea";
   }
   renderAlarmTestIdle();
 }
@@ -877,6 +923,33 @@ function stopAlarmTestSources() {
       source.stop();
     } catch (error) {}
   });
+}
+function scheduleRestChimeForActiveTimer() {
+  stopRestChimeSources();
+  if (!soundEnabled || !activeSession || activeSession.phase !== "resting") return;
+  var context = ensureAudioContext();
+  if (!context) return;
+  var remainingSeconds = Math.max(0, activeSession.restEndsAt - Date.now()) / 1000;
+  try {
+    restChimeContext = context;
+    restChimeStartsAt = context.currentTime + remainingSeconds;
+    restChimeSources = scheduleRestChime(context, restChimeStartsAt);
+  } catch (error) {
+    restChimeSources = [];
+    restChimeContext = null;
+    restChimeStartsAt = null;
+    console.warn("휴식 종료 알람을 준비하지 못했습니다.", error);
+  }
+}
+function stopRestChimeSources() {
+  restChimeSources.forEach(function (source) {
+    try {
+      source.stop();
+    } catch (error) {}
+  });
+  restChimeSources = [];
+  restChimeContext = null;
+  restChimeStartsAt = null;
 }
 function ensureAudioContext() {
   if (!soundEnabled) return null;
@@ -964,6 +1037,13 @@ function formatClock(totalSeconds) {
   var minutes = Math.floor(totalSeconds / 60);
   var seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+function formatRestDuration(totalSeconds) {
+  var minutes = Math.floor(totalSeconds / 60);
+  var seconds = totalSeconds % 60;
+  if (minutes > 0 && seconds > 0) return `${minutes}분 ${seconds}초`;
+  if (minutes > 0) return `${minutes}분`;
+  return `${seconds}초`;
 }
 function formatDuration(totalSeconds) {
   var minutes = Math.floor(totalSeconds / 60);

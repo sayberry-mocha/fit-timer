@@ -85,10 +85,9 @@ body {
 }
 
 body.is-resting {
-  --page: #f1eee5;
+  --page: #edf3ef;
 }
 
-body.is-rest-complete,
 body.is-alarm-test-complete {
   --page: #dcecdf;
 }
@@ -132,15 +131,21 @@ button:focus-visible {
   background: rgba(157, 192, 166, 0.32);
 }
 
-body.is-rest-complete .ambient-one,
 body.is-alarm-test-complete .ambient-one {
   background: rgba(255, 255, 255, 0.55);
 }
 
-body.is-rest-complete .ambient-two,
 body.is-alarm-test-complete .ambient-two {
   opacity: 0.9;
   background: rgba(113, 173, 133, 0.35);
+}
+
+body.is-resting .ambient-one {
+  background: rgba(184, 216, 202, 0.42);
+}
+
+body.is-resting .ambient-two {
+  background: rgba(126, 177, 156, 0.3);
 }
 
 .app-shell {
@@ -605,8 +610,8 @@ body.is-alarm-test-complete .ambient-two {
 
 .workout-screen {
   padding-top: 12px;
-  padding-bottom: 140px;
-  padding-bottom: calc(120px + var(--safe-bottom));
+  padding-bottom: 60px;
+  padding-bottom: calc(40px + var(--safe-bottom));
 }
 
 .session-toolbar {
@@ -680,7 +685,7 @@ body.is-alarm-test-complete .ambient-two {
   color: var(--primary-deep);
 }
 
-body.is-rest-complete .exercise-progress-group.is-current .exercise-progress-label {
+body.is-resting .exercise-progress-group.is-current .exercise-progress-label {
   color: var(--sage);
 }
 
@@ -700,7 +705,7 @@ body.is-rest-complete .exercise-progress-group.is-current .exercise-progress-lab
   transition: width 400ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 600ms ease;
 }
 
-body.is-rest-complete .progress-track span {
+body.is-resting .progress-track span {
   background: var(--sage);
 }
 
@@ -710,12 +715,59 @@ body.is-rest-complete .progress-track span {
   padding: 40px 30px 28px;
   padding: clamp(30px, 8vw, 54px) clamp(24px, 7vw, 48px) 28px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 121, 88, 0.25);
   border-radius: var(--radius-large);
-  background: var(--surface);
+  outline: none;
+  background:
+    linear-gradient(145deg, rgba(255, 253, 249, 0.96), rgba(255, 237, 228, 0.88));
   box-shadow: var(--shadow);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 121, 88, 0.09);
+  -webkit-user-select: none;
+  user-select: none;
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
+  transition:
+    background-color 450ms ease,
+    border-color 450ms ease,
+    box-shadow 180ms ease,
+    transform 130ms ease;
+}
+
+body.is-resting .stage-card {
+  border-color: rgba(29, 108, 83, 0.25);
+  background:
+    linear-gradient(145deg, rgba(250, 253, 251, 0.96), rgba(218, 237, 228, 0.92));
+  box-shadow: 0 24px 70px rgba(42, 83, 67, 0.14);
+  -webkit-tap-highlight-color: rgba(29, 108, 83, 0.09);
+}
+
+.stage-card:focus {
+  outline: 3px solid rgba(25, 35, 31, 0.72);
+  outline-offset: 4px;
+}
+
+.stage-card:active {
+  transform: scale(0.992);
+}
+
+.stage-card[aria-disabled="true"] {
+  cursor: default;
+}
+
+.stage-card[aria-disabled="true"]:active {
+  transform: none;
+}
+
+@media (hover: hover) {
+  .stage-card:hover {
+    box-shadow: 0 27px 76px rgba(52, 55, 47, 0.16);
+  }
+
+  body.is-resting .stage-card:hover {
+    box-shadow: 0 27px 76px rgba(42, 83, 67, 0.18);
+  }
 }
 
 .exercise-view,
@@ -788,33 +840,19 @@ body.is-rest-complete .progress-track span {
   margin: 0 auto 22px;
   place-items: center;
   border-radius: 50%;
-  background: var(--primary-soft);
+  background: var(--sage-soft);
 }
 
 .rest-state-icon span {
   width: 17px;
   height: 17px;
-  border: 3px solid var(--primary-deep);
+  border: 3px solid var(--sage);
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 1.4s linear infinite;
 }
 
-body.is-rest-complete .rest-state-icon {
-  background: var(--sage-soft);
-}
-
-body.is-rest-complete .rest-state-icon span {
-  width: 20px;
-  height: 11px;
-  border: solid var(--sage);
-  border-width: 0 0 3px 3px;
-  border-radius: 0;
-  animation: none;
-  transform: translateY(-2px) rotate(-45deg);
-}
-
-body.is-rest-complete .rest-view .phase-label {
+body.is-resting .rest-view .phase-label {
   color: var(--sage);
 }
 
@@ -872,38 +910,20 @@ body.is-rest-complete .rest-view .phase-label {
   white-space: nowrap;
 }
 
-.action-area {
-  position: fixed;
-  z-index: 20;
-  bottom: 0;
-  left: 50%;
-  width: calc(100% - 40px);
-  max-width: 692px;
-  width: min(calc(100% - 40px), 692px);
-  padding: 18px 0 20px;
-  padding: 18px 0 var(--safe-bottom);
-  isolation: isolate;
-  transform: translateX(-50%);
-}
-
-.action-area::before {
-  position: absolute;
-  z-index: -1;
-  top: -24px;
-  right: -20px;
-  bottom: 0;
-  left: -20px;
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, var(--page) 36px, var(--page));
-  content: "";
-}
-
-.action-hint {
-  min-height: 20px;
-  margin: 0 0 10px;
+.panel-action-message {
+  margin: 18px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid rgba(25, 35, 31, 0.1);
   color: var(--muted);
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+body.is-resting .panel-action-message {
+  border-top-color: rgba(29, 108, 83, 0.14);
+  color: var(--sage);
 }
 
 .primary-button,
@@ -942,10 +962,6 @@ body.is-rest-complete .rest-view .phase-label {
 .primary-button:active,
 .secondary-button:active {
   transform: scale(0.985);
-}
-
-body.is-rest-complete .primary-button {
-  background: var(--sage);
 }
 
 .secondary-button {
@@ -1116,18 +1132,12 @@ body.is-rest-complete .primary-button {
     padding-left: 34px;
   }
 
-  .action-area {
-    width: calc(100% - 68px);
-    max-width: 692px;
-    width: min(calc(100% - 68px), 692px);
-  }
-
   .screen {
     padding-top: 32px;
   }
 
   .program-list {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .program-card {
@@ -1142,7 +1152,7 @@ body.is-rest-complete .primary-button {
   }
 
   .program-exercises {
-    max-width: 145px;
+    max-width: 240px;
     white-space: normal;
   }
 }
@@ -1160,10 +1170,6 @@ body.is-rest-complete .primary-button {
 
   .screen {
     padding-top: 10px;
-  }
-
-  .action-area {
-    width: calc(100% - 32px);
   }
 
   .stage-card {
@@ -1248,17 +1254,9 @@ body.is-rest-complete .primary-button {
     margin-top: 6px;
   }
 
-  .action-area {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    width: 100%;
-    padding-top: 16px;
-    transform: none;
-  }
-
-  .action-area::before {
-    top: 0;
+  .panel-action-message {
+    margin-top: 14px;
+    padding-top: 14px;
   }
 }
 
